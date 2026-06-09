@@ -114,9 +114,23 @@ class Puzzle:
         # Dica: evite desfazer o movimento anterior (usar OPOSTO)
         if iteracoes is None:
             iteracoes = random.randint(10, 100)
-        movimentos = [self.mover_baixo, self.mover_cima, self.mover_direita, self.mover_esquerda]
+        ultimo_movimento = None
         for _ in range(iteracoes):
-            random.choice(movimentos)()
+            movimento = random.choice(MOVIMENTOS_VALIDOS)
+            # Evita desfazer o movimento anterior
+            if ultimo_movimento is not None and movimento == OPOSTOS[ultimo_movimento]:
+                movimento = random.choice(MOVIMENTOS_VALIDOS)
+            
+            # Aplicar o movimento
+            mapa = {
+                "cima": self.mover_cima,
+                "baixo": self.mover_baixo,
+                "esquerda": self.mover_esquerda,
+                "direita": self.mover_direita,
+            }
+            if movimento in mapa:
+                mapa[movimento]()
+                ultimo_movimento = movimento
 
     def custo_manhattan(self) -> float:
         # TODO: para cada valor 1..8, encontrar posição atual e posição

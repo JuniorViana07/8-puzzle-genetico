@@ -59,7 +59,7 @@ class Chromosome:
         temp = self.puzzle.copia()
         melhor_manhattan = temp.custo_manhattan()
 
-        for mov in self.genes:
+        for indice, mov in enumerate(self.genes):
             mapa = {
             "cima": temp.mover_cima,
             "baixo": temp.mover_baixo,
@@ -72,13 +72,14 @@ class Chromosome:
             if m < melhor_manhattan:
                 melhor_manhattan = m
             if temp.esta_resolvido():
+                self.genes = self.genes[: indice + 1]
                 self.fitness = 0.0
                 self.distancia_custo = 0.0
                 self.erro_tamanho = 0.0
                 return
 
         self.distancia_custo = melhor_manhattan
-        self.erro_tamanho = len(self.genes) * 0.0001
+        self.erro_tamanho = len(self.genes) * 0.001  # Aumentado de 0.0001 para ter mais peso
         self.fitness = self.distancia_custo + self.erro_tamanho
 
     @staticmethod

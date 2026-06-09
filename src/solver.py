@@ -129,21 +129,30 @@ class Solver:
 
 
     def resolver(self, max_geracoes=2000, callback=None):
-        """
-        Loop principal do AG.
-
-        callback: função opcional chamada a cada geração com
-                  (geracao, melhor, fitness_medio) para atualizar UI.
-
-        Retorna o melhor cromossomo encontrado.
-        """
         self.inicializar_populacao()
+        geracoes_sem_melhora = 0
+        melhor_fitness_anterior = float('inf')
 
         for geracao in range(max_geracoes):
             self.aplicar_crossover()
             self.calcular_fitness_populacao()
             self.elitismo()
             self.aplicar_mutacao()
+
+            # Detecta estagnação e reinjecta diversidade
+            if self.melhor.fitness < melhor_fitness_anterior:
+                melhor_fitness_anterior = self.melhor.fitness
+                geracoes_sem_melhora = 0
+            else:
+                geracoes_sem_melhora += 1
+
+            if geracoes_sem_melhora >= 50:
+                # Substitui 50% da população por cromossomos novos
+                n_novos = self.tamanho_pop // 2
+                novos = [Chromosome(self.puzzle) for _ in range(n_novos)]
+                self.populacao.sort(key=lambda c: c.fitness)
+                self.populacao[self.tamanho_pop // 2:] = novos
+                geracoes_sem_melhora = 0
 
             # Salva histórico
             self.historico_melhor.append(self.melhor.fitness if self.melhor else None)
