@@ -40,6 +40,8 @@ class Chromosome:
 
         self.calcular_fitness()
 
+    def get_gene(self):
+        vetor = []
     def calcular_fitness(self):
         """
         Aplica os genes ao puzzle (numa CÓPIA) e calcula:

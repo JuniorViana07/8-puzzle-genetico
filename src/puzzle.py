@@ -19,116 +19,126 @@ import copy
 
 
 # Movimentos possíveis (direção para onde o ESPAÇO VAZIO se desloca)
-MOVIMENTOS = ["cima", "baixo", "esquerda", "direita"]
+MOVIMENTOS_VALIDOS = ["cima", "baixo", "esquerda", "direita"]
 
 # Movimentos opostos — útil para evitar movimentos que se anulam
-OPOSTO = {
-    "cima": "baixo",
-    "baixo": "cima",
-    "esquerda": "direita",
-    "direita": "esquerda",
-}
+OPOSTOS = {"cima": "baixo", "baixo": "cima", "esquerda": "direita", "direita": "esquerda"}
 
 # Estado objetivo: 0 representa o espaço vazio
-ESTADO_OBJETIVO = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-]
+OBJETIVO = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
 
 
 class Puzzle:
     """Representa o tabuleiro 3×3 do 8-puzzle."""
-
     def __init__(self, tabuleiro=None):
-        """
-        Se nenhum tabuleiro for passado, cria o estado resolvido.
-        tabuleiro: lista 3×3 (ex: [[0,1,2],[3,4,5],[6,7,8]])
-        """
+
         if tabuleiro is None:
+            self.tabuleiro = copy.deepcopy(OBJETIVO)
             # TODO: inicializar com o ESTADO_OBJETIVO (cópia profunda!)
             pass
         else:
             self.tabuleiro = tabuleiro
 
-    def __str__(self):
-        """
-        Retorna uma representação visual do tabuleiro.
-        Exemplo:
-          | 1 | 2 | 3 |
-          | 4 |   | 5 |
-          | 6 | 7 | 8 |
-        """
+    def get_estado_inicial(self):
+        self.tabuleiro = copy.deepcopy(OBJETIVO)
+        self.tabuleiro = self.embaralhar(1000)
+        return self.tabuleiro
+
+    def __str__(self) -> str:
         # TODO: implementar
-        pass
+        linhas = []
+        for row in self.tabuleiro:
+            linha = "| " + " | ".join(" " if v == 0 else str(v) for v in row) + " |"
+            linhas.append(linha)
+        return "\n".join(linhas)
 
-    def copiar(self):
-        """Retorna uma cópia independente deste puzzle."""
+    def copia(self) -> "Puzzle":
         # TODO: usar copy.deepcopy ou copiar manualmente
-        pass
+        novo = Puzzle()
+        novo.tabuleiro = copy.deepcopy(self.tabuleiro)
+        return novo
 
-    def encontrar_vazio(self):
-        """
-        Retorna a posição (linha, coluna) do espaço vazio (0).
-        Ex: se 0 está no centro, retorna (1, 1).
-        """
-        # TODO: percorrer self.tabuleiro e encontrar onde está o 0
-        pass
+    def encontra_index(self, valor: int) -> tuple[int, int]:
+        for i in range(3):
+            for j in range(3):
+                if self.tabuleiro[i][j] == valor:
+                    return (i, j)
+        raise ValueError(f"Valor {valor} não encontrado no tabuleiro.")
 
-    def movimentos_validos(self):
-        """
-        Retorna lista de movimentos possíveis dado a posição atual do vazio.
-        Ex: se vazio está em (0,0), não pode ir para 'cima' nem 'esquerda'.
-        """
-        # TODO: verificar limites do tabuleiro
-        pass
+    def _trocar(self, a: tuple, b: tuple):
+        self.tabuleiro[a[0]][a[1]], self.tabuleiro[b[0]][b[1]] = (
+            self.tabuleiro[b[0]][b[1]],
+            self.tabuleiro[a[0]][a[1]],
+        )
 
-    def aplicar_movimento(self, movimento):
-        """
-        Aplica um movimento ao tabuleiro (troca o vazio com o vizinho).
-        Retorna True se o movimento foi válido, False se foi ignorado.
+    def mover_esquerda(self) -> bool:
+        r, c = self.encontra_index(0)
+        if c == 0:
+            return False
+        self._trocar((r, c), (r, c - 1))
+        return True
 
-        Lembre-se: 'cima' significa que o vazio sobe (troca com a peça acima).
-        """
-        # TODO: implementar a troca
-        pass
+    def mover_direita(self) -> bool:
+        r, c = self.encontra_index(0)
+        if c == 2:
+            return False
+        self._trocar((r, c), (r, c + 1))
+        return True
 
-    def aplicar_sequencia(self, movimentos):
-        """
-        Aplica uma lista de movimentos em sequência.
-        Movimentos inválidos são simplesmente ignorados.
-        Retorna o número de movimentos que foram efetivamente aplicados.
-        """
-        # TODO: iterar e chamar aplicar_movimento para cada um
-        pass
+    def mover_cima(self) -> bool:
+        r, c = self.encontra_index(0)
+        if r == 0:
+            return False
+        self._trocar((r, c), (r - 1, c))
+        return True
 
-    def embaralhar(self, n_movimentos=100):
-        """
-        Embaralha o tabuleiro a partir do estado resolvido,
-        aplicando n_movimentos aleatórios válidos.
-        Isso GARANTE que a configuração resultante é resolúvel.
-        """
+    def mover_baixo(self) -> bool:
+        r, c = self.encontra_index(0)
+        if r == 2:
+            return False
+        self._trocar((r, c), (r + 1, c))
+        return True
+
+    def aplica_movimentos(self, movimentos: list[str]) -> int:
+        """Aplica uma lista de movimentos e retorna quantos foram válidos."""
+        mapa = {
+            "cima": self.mover_cima,
+            "baixo": self.mover_baixo,
+            "esquerda": self.mover_esquerda,
+            "direita": self.mover_direita,
+        }
+        validos = 0
+        for mov in movimentos:
+            if mov in mapa and mapa[mov]():
+                validos += 1
+        return validos
+
+    def embaralhar(self, iteracoes: int | None = None):
         # TODO: a cada passo, escolher um movimento válido aleatório e aplicar
         # Dica: evite desfazer o movimento anterior (usar OPOSTO)
-        pass
+        if iteracoes is None:
+            iteracoes = random.randint(10, 100)
+        movimentos = [self.mover_baixo, self.mover_cima, self.mover_direita, self.mover_esquerda]
+        for _ in range(iteracoes):
+            random.choice(movimentos)()
 
-    def custo_manhattan(self):
-        """
-        Calcula a distância de Manhattan total:
-        soma de |linha_atual - linha_alvo| + |col_atual - col_alvo|
-        para cada peça (exceto o vazio).
-
-        Quanto menor, mais perto da solução. Zero = resolvido.
-        """
+    def custo_manhattan(self) -> float:
         # TODO: para cada valor 1..8, encontrar posição atual e posição
         # no ESTADO_OBJETIVO, somar as distâncias
-        pass
+        """Distância de Manhattan de cada peça até sua posição correta."""
+        referencia = {val: (val // 3, val % 3) for val in range(9)}
+        distancia = 0.0
+        for i in range(3):
+            for j in range(3):
+                val = self.tabuleiro[i][j]
+                ri, rj = referencia[val]
+                distancia += abs(i - ri) + abs(j - rj)
+        return distancia
 
-    def esta_resolvido(self):
-        """Retorna True se o tabuleiro está no estado objetivo."""
+    def esta_resolvido(self) -> bool:
         # TODO: comparar self.tabuleiro com ESTADO_OBJETIVO
-        pass
-
+        return self.tabuleiro == OBJETIVO
+    
 
 # ---------------------------------------------------------------------------
 # Teste rápido — rode com: python puzzle.py
@@ -144,4 +154,4 @@ if __name__ == "__main__":
 
     print(f"Manhattan: {p.custo_manhattan()}")
     print(f"Resolvido? {p.esta_resolvido()}")
-    print(f"Movimentos válidos: {p.movimentos_validos()}")
+    print(f"Movimentos válidos: {MOVIMENTOS_VALIDOS}")
