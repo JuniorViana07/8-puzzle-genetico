@@ -13,7 +13,7 @@ from solver import Solver
 def main():
     # 1. Criar e embaralhar o puzzle
     puzzle = Puzzle()
-    puzzle.embaralhar(25)  # dificuldade média
+    puzzle.embaralhar(100)  # dificuldade média
 
     print("Estado inicial:")
     print(puzzle)

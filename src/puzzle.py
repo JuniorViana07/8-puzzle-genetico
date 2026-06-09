@@ -34,15 +34,11 @@ class Puzzle:
 
         if tabuleiro is None:
             self.tabuleiro = copy.deepcopy(OBJETIVO)
+            self.embaralhar(1000)  # embaralha o estado objetivo para criar o estado inicial
             # TODO: inicializar com o ESTADO_OBJETIVO (cópia profunda!)
             pass
         else:
             self.tabuleiro = tabuleiro
-
-    def get_estado_inicial(self):
-        self.tabuleiro = copy.deepcopy(OBJETIVO)
-        self.tabuleiro = self.embaralhar(1000)
-        return self.tabuleiro
 
     def __str__(self) -> str:
         # TODO: implementar
@@ -53,8 +49,7 @@ class Puzzle:
         return "\n".join(linhas)
 
     def copia(self) -> "Puzzle":
-        # TODO: usar copy.deepcopy ou copiar manualmente
-        novo = Puzzle()
+        novo = Puzzle.__new__(Puzzle)            # cria sem chamar __init__
         novo.tabuleiro = copy.deepcopy(self.tabuleiro)
         return novo
 
@@ -108,6 +103,7 @@ class Puzzle:
             "direita": self.mover_direita,
         }
         validos = 0
+        # se a solução for encontrada durante o loop, encontramos uma solução de tamanho validos.
         for mov in movimentos:
             if mov in mapa and mapa[mov]():
                 validos += 1
@@ -126,11 +122,17 @@ class Puzzle:
         # TODO: para cada valor 1..8, encontrar posição atual e posição
         # no ESTADO_OBJETIVO, somar as distâncias
         """Distância de Manhattan de cada peça até sua posição correta."""
-        referencia = {val: (val // 3, val % 3) for val in range(9)}
+        referencia = {}
+        for i in range(3):
+            for j in range(3):
+                valor = OBJETIVO[i][j]
+                referencia[valor] = (i, j)
         distancia = 0.0
         for i in range(3):
             for j in range(3):
                 val = self.tabuleiro[i][j]
+                if val == 0:
+                    continue
                 ri, rj = referencia[val]
                 distancia += abs(i - ri) + abs(j - rj)
         return distancia

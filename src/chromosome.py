@@ -14,7 +14,8 @@ Ordem sugerida:
 """
 
 import random
-from puzzle import Puzzle, MOVIMENTOS, OPOSTO
+
+from puzzle import Puzzle, MOVIMENTOS_VALIDOS, OPOSTOS
 
 
 class Chromosome:
@@ -31,34 +32,54 @@ class Chromosome:
             # TODO: gerar lista aleatória de movimentos
             # Tamanho entre 15 e 40 (como no repo de referência)
             self.genes = []
+            self.genes = self.get_gene()
         else:
             self.genes = list(genes)  # cópia
 
-        self.fitness = None
-        self.dist_manhattan = None
-        self.penalidade_tamanho = None
+        self.fitness = float("inf")
+        self.dist_manhattan = float("inf")
+        self.penalidade_tamanho = 0.0
 
-        self.calcular_fitness()
+        self.calcula_fitness()
 
     def get_gene(self):
         vetor = []
-    def calcular_fitness(self):
-        """
-        Aplica os genes ao puzzle (numa CÓPIA) e calcula:
-          - dist_manhattan: distância de Manhattan do estado resultante
-          - penalidade_tamanho: len(genes) * 0.0001
-          - fitness: soma dos dois (ou 0.0 se resolveu)
+        tam_genoma = random.choice(range(15, 40))
+        ultimo = None
+        for _ in range(tam_genoma):
+            novo = random.choice(MOVIMENTOS_VALIDOS)
+            if(ultimo is not None):
+                while novo == OPOSTOS[ultimo]:
+                    novo = random.choice(MOVIMENTOS_VALIDOS)
+            vetor.append(novo)
+            ultimo = novo
+        return vetor
 
-        Menor fitness = melhor indivíduo.
-        """
-        # TODO:
-        # 1. copia = self.puzzle.copiar()
-        # 2. copia.aplicar_sequencia(self.genes)
-        # 3. self.dist_manhattan = copia.custo_manhattan()
-        # 4. self.penalidade_tamanho = len(self.genes) * 0.0001
-        # 5. se copia.esta_resolvido(): fitness = 0.0
-        #    senao: fitness = dist_manhattan + penalidade_tamanho
-        pass
+    def calcula_fitness(self):
+        temp = self.puzzle.copia()
+        melhor_manhattan = temp.custo_manhattan()
+
+        for mov in self.genes:
+            mapa = {
+            "cima": temp.mover_cima,
+            "baixo": temp.mover_baixo,
+            "esquerda": temp.mover_esquerda,
+            "direita": temp.mover_direita,
+            }
+            if mov in mapa:
+                mapa[mov]()
+            m = temp.custo_manhattan()
+            if m < melhor_manhattan:
+                melhor_manhattan = m
+            if temp.esta_resolvido():
+                self.fitness = 0.0
+                self.distancia_custo = 0.0
+                self.erro_tamanho = 0.0
+                return
+
+        self.distancia_custo = melhor_manhattan
+        self.erro_tamanho = len(self.genes) * 0.0001
+        self.fitness = self.distancia_custo + self.erro_tamanho
 
     @staticmethod
     def crossover(pai_a, pai_b):
@@ -71,9 +92,21 @@ class Chromosome:
         Filho B = primeira metade de B + segunda metade de A
         """
         # TODO: implementar
-        pass
+        # Garante que `a` é o melhor pai
+        if pai_b.fitness < pai_a.fitness:
+            pai_a, pai_b = pai_b, pai_a
+ 
+        ponto = min(len(pai_a.genes), len(pai_b.genes)) // 2
+ 
+        genes_a = pai_a.genes[:ponto] + pai_b.genes[ponto:]
+        genes_b = pai_b.genes[:ponto] + pai_a.genes[ponto:]
+ 
+        return (
+            Chromosome(pai_a.puzzle, genes_a),
+            Chromosome(pai_b.puzzle, genes_b),
+        )
 
-    def mutacao(self):
+    def mutacao(self, so_crescer : bool = False):
         """
         Aplica UMA mutação ao cromossomo:
           - 50% chance: ADICIONAR um gene ao final
@@ -82,9 +115,35 @@ class Chromosome:
 
         Ao final, recalcular fitness.
         """
+        if self.distancia_custo > 2:
+            so_crescer = True
         # TODO: implementar
         # Dica: use OPOSTO para verificar se um movimento desfaz o anterior
-        pass
+        if not self.genes:
+            # Cromossomo vazio: força adição
+            self.genes.append(random.choice(MOVIMENTOS_VALIDOS))
+            self.calcula_fitness()
+            return
+ 
+        chance_adicionar = 0.5 if not so_crescer else 1.0
+ 
+        if random.random() < chance_adicionar:
+            # Adiciona um movimento no final evitando desfazer o último
+            ultimo = self.genes[-1]
+            novo = random.choice(MOVIMENTOS_VALIDOS)
+            while novo == OPOSTOS[ultimo]:
+                novo = random.choice(MOVIMENTOS_VALIDOS)
+            self.genes.append(novo)
+        else:
+            # Modifica um gene existente aleatório
+            idx = random.randint(0, len(self.genes) - 1)
+            original = self.genes[idx]
+            novo = random.choice(MOVIMENTOS_VALIDOS)
+            while novo == original:
+                novo = random.choice(MOVIMENTOS_VALIDOS)
+            self.genes[idx] = novo
+ 
+        self.calcula_fitness()
 
     def __repr__(self):
         return f"Chromosome(fitness={self.fitness:.4f}, genes={len(self.genes)})"
